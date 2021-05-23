@@ -17,3 +17,7 @@ project/plugins/project/
 .worksheet
 .idea
 .bsp/sbt.json
+
+# VSCode
+.metals/
+.vscode/
