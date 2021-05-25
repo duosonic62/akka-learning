@@ -1,8 +1,8 @@
-name := "goticks"
+name := "akka-test"
 
 version := "1.0"
 
-organization := "com.goticks" 
+organization := "com.akka-test" 
 
 scalaVersion := "2.12.13"
 
