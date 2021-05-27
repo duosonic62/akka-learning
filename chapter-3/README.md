@@ -39,3 +39,24 @@ silentActor ! SilentMessage("whisper 2")
 silentActor ! GetState(testActor) // testKitに含まれているtestActorにメッセージを送らせちゃう
 expectMsg(Vector("whisper 1", "whisper 2"))
 ```
+
+## SendingActorのテスト
+SengdingActorとは、アクターが受信したメッセージの処理を行った後に次のアクターにメッセージを受け渡すアクターのこと。
+
+Propsとして `testActor` を生成してテスト対象のアクターを生成する。
+
+```scala
+val props = SendingActor.props(testActor)
+val sendingActor = system.actorOf(props, "sendingActor")
+```
+
+検証はexpectMsgPFを通して testActor に渡されたメッセージを確認する。
+
+```scala
+expectMsgPF() {
+    case SortedEvents(events) => 
+        events.size must be(size)
+        unsorted.sortBy(_.id) must be(events)
+}
+```
+
