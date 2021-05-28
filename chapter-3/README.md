@@ -60,3 +60,36 @@ expectMsgPF() {
 }
 ```
 
+## SideEffectingActor
+SideEffectingActorとは別のアクターではないオブジェクトに影響を与えるアクターのこと。
+例えばコンソールへの出力やDBへの値の保存など。
+
+テスト用にアクターシステムを作成して、イベントハンドラをTestEventListnerにする。
+
+```scala
+val config = ConfigFactory.parseString(
+            """
+            akka.loggers = [akka.testkit.TestEventListener]
+            """
+        )
+        ActorSystem("testsystem", config)
+```
+
+テストはEventFilterを使ってインターセプトして期待する値が取得できるかを確認する。
+
+```scala
+EventFilter.info(message = "Hello World!", occurrences = 1).intercept {
+    actor ! Greeting("World")
+} 
+```
+
+基本的にテストがやりにくい性質のため、 テスト対象のアクターに `Option` でテスト用のリスナーを受け取れるようにしておくのも良い。もしかしたら双方向にしちゃえばもっと良いかもしれない。
+
+```scala
+def receive = {
+    case Greeting(who) => 
+        val message = s"Hello $who!"
+        log.info(message)
+        listner.foreach(_ ! message)
+}
+```
