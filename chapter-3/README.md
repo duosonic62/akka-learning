@@ -93,3 +93,32 @@ def receive = {
         listner.foreach(_ ! message)
 }
 ```
+
+## TwoWayActor (双方向アクター)
+双方向のアクターとは受信したメッセージを元に `暗黙的なsender` にメッセージを送信するアクターのこと。  
+senderを参照するとメッセージを取得できる。
+
+テストでは暗黙的なsenderにtestActorを設定するとよい。テストで暗黙的なsenderを使う場合は `ImplicitSender` をミックスインすると、testActorがsenderとしてimplicitで設定される。
+
+
+```scala 
+class TwoWayActorTest extends TestKit(ActorSystem("testsystem"))
+    with AnyWordSpecLike
+    with ImplicitSender // ImplicitSenderをミックスイン
+    with StopSystemAfterAll {
+
+    // implicit val sender = testActor
+    // 上記がImplicitActorで追加される
+    
+    "Reply with the same message if recievrs without ask" in {
+        val echo = system.actorOf(Props[TwoWayActor], "echo2")
+        echo ! "some message"
+        expectMsg("some message")
+    } 
+
+}
+```
+
+## テストのコツ
+基本的には `testActor` をテスト対象のアクターに渡せる状態にしておくと良い。  
+テスト対象のアクターから送信されたメッセージをアサートできるので簡単にテストができることがおおいため、 `testActor` を挟めると楽になる。
