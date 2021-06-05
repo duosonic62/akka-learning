@@ -8,3 +8,10 @@ Akkaではリモートのアクターへの参照を下記二つの方法で実�
 1. 生成したアクターの参照をリモートにデプロイする `リモートデプロイ` 
 
 ### リモート参照 
+リモート参照では直接アクターの `パス` を指定して通信を行う。
+
+```scala
+  val path = "akka://simple-backend@127.0.0.1:2551/user/simple-backend"
+  val backendActor = frontend.actorSelection(path)
+```
+

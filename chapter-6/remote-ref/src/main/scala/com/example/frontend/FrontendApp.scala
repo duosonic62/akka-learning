@@ -1,6 +1,6 @@
 package com.example.frontend
 
-import akka.actor.{ActorPath, ActorSystem}
+import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 
 object FrontendApp extends App {
