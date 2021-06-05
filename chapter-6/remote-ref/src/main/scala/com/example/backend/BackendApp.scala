@@ -8,10 +8,8 @@ import scala.concurrent.ExecutionContextExecutor
 
 object BackendApp extends App with  RequestTimeout{
   val config = ConfigFactory.load("backend")
-  val host = config.getString("http.host")
-  val port = config.getInt("http.port")
 
-  implicit val system: ActorSystem = ActorSystem()
+  implicit val system: ActorSystem = ActorSystem(BackendActor.name, config)
   implicit val ec: ExecutionContextExecutor = system.dispatcher
 
   system.actorOf(Props[BackendActor], BackendActor.name)
