@@ -15,3 +15,27 @@ Akkaではリモートのアクターへの参照を下記二つの方法で実�
   val backendActor = frontend.actorSelection(path)
 ```
 
+## リモートデプロイ
+リモートデプロイではアクターを使用する側が、使用するアクターをリモートにデプロイして通信を行う。
+
+使用される側のアプリケーションは、ActorSystemを構築するだけ。
+
+```scala
+object BackendApp extends App {
+  val config = ConfigFactory.load("backend")
+  implicit val system: ActorSystem = ActorSystem(BackendActor.name, config)
+}
+```
+
+使用する側のアプリケーションはリモート環境にアクターをデプロイして使用する。
+
+```scala
+object FrontendApp extends App {
+  val config = ConfigFactory.load("frontend")
+  implicit val system: ActorSystem = ActorSystem("frontend", config)
+  implicit val ec: ExecutionContextExecutor = system.dispatcher
+
+  val backendActor: ActorRef = system.actorOf(Props[BackendActor], BackendActor.name)
+}
+```
+
