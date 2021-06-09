@@ -9,3 +9,34 @@ Akkaではアクターを使ってフィルターを実装する。すでにメ�
 * インターフェースが全てのフィルター(アクター)で同じであること
 * 全てのアクターが独立していること
 
+下記のケースではLicenseFilterとSpeedFilterの両方で、 `Photo` メッセージを処理するようにしておくとフィルターとしてしようできる。
+
+```scala
+class SpeedFilter(minSpeed: Int, pipe: ActorRef) extends Actor{
+  override def receive: Receive = {
+    case msg: Photo =>
+      if (msg.speed > minSpeed) pipe ! msg
+  }
+}
+
+class LicenseFilter(pipe: ActorRef) extends Actor {
+  override def receive: Receive = {
+    case msg: Photo =>
+      if (msg.license.nonEmpty) pipe ! msg
+  }
+}
+```
+
+フィルターを適用する場合は、引数として次のフィルターをパイプとして渡す。
+下記の例では `入力 -> licenceFilter -> speedFilter -> end` の順番で処理が行われる。
+
+```scala
+      val speedFilter = system.actorOf(
+        Props(new SpeedFilter(50, end))
+      )
+      val licenseFilter = system.actorOf(
+        Props(new LicenseFilter(speedFilter))
+      )
+```
+
+また順番の入れ替えは容易で、各フィルターに渡す引数を変更すれば実現できる。
