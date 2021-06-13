@@ -46,6 +46,45 @@ class LicenseFilter(pipe: ActorRef) extends Actor {
 処理タスクはギャザー部分でAkkaが提供するアグリゲータを使用する。
 受信者リストはスキャッタコンポーネント部分となる。
 
+スキャッタでは複数のパイプ(処理)にメッセージを送るため、送信先のリストを受け取る。
+一つのメッセージを受け取って送信先のリスト全てに送信する。
+
+```scala
+class RecipientList(recipientList: Seq[ActorRef]) extends Actor {
+  override def receive: Receive = {
+    case msg: AnyRef => recipientList.foreach(_ ! msg)
+  }
+}
+```
+
+ギャザーでは、複数のパイプの処理を合成して一つのメッセージにまとめる。
+複数のメッセージを合成する場合は、メッセージが揃うまで待つように状態を持たなくてはならない。
+
+```scala
+class Aggregator(timeout: FiniteDuration, pipe: ActorRef) extends Actor {
+  val messages = new ListBuffer[PhotoMessage]
+
+  override def receive: Receive = {
+    case rcvMsg: PhotoMessage =>
+      messages.find(_.id == rcvMsg.id) match {
+        // メッセージが存在すれば合成   
+        case Some(alreadyRcvMsg) =>
+          val newCombinedMsg = rcvMsg + alreadyRcvMsg
+          pipe ! newCombinedMsg
+          messages -= alreadyRcvMsg
+          
+        // 存在しなければ保管庫にためる  
+        case None => messages += rcvMsg
+      }
+  }
+}
+```
+
+また、ギャザー部分ではアクターの再起動時の合成できていないメッセージやタイムアウト等の考慮が必要となる。
+
+このパターンではメッセージを加工して次のパイプに処理をつなぐことがある。副作用を許容するクラスをメッセージにしてしまうと、並行処理を行うため意図しない動作をしてしまうことがある。  
+そのため、 `case class` を使用するなど、イミュータブルなオブジェクトをメッセージにするようにすると良い。
+
 ### 競争タスク
 複数の同様の処理を行うタスクを並行で処理し、その結果を比較してフィルターした結果を次の処理に回すパターン。
 最安値や、最速で応答のあった処理を使ったりする感じ。
