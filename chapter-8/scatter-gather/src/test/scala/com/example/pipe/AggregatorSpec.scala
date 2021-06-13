@@ -47,6 +47,57 @@ class AggregatorSpec extends TestKit(ActorSystem("testsystem"))
 
       endProbe.expectMsg(combinedMsg)
     }
+
+    "if timeout, send not combined messages" in {
+      val endProbe = TestProbe()
+      val now = LocalDateTime.now
+      val actorRef = system.actorOf(
+        Props(new Aggregator(1 second, endProbe.ref))
+      )
+      val msg1 = PhotoMessage(
+        "id1",
+        "message",
+        Some(now),
+        None
+      )
+
+      actorRef ! msg1
+      endProbe.expectMsg(msg1)
+    }
+
+    "if restart, not combined messages is sent mailbox" in {
+      val endProbe = TestProbe()
+      val now = LocalDateTime.now
+      val actorRef = system.actorOf(
+        Props(new Aggregator(1 second, endProbe.ref))
+      )
+      val msg1 = PhotoMessage(
+        "id1",
+        "message",
+        Some(now),
+        None
+      )
+      actorRef ! msg1
+
+      actorRef ! new IllegalStateException("restart")
+
+      val msg2 = PhotoMessage(
+        "id1",
+        "message",
+        None,
+        Some(60)
+      )
+      actorRef ! msg2
+
+      val combinedMsg = PhotoMessage(
+        "id1",
+        "message",
+        Some(now),
+        Some(60)
+      )
+
+      endProbe.expectMsg(combinedMsg)
+    }
   }
 
 }
