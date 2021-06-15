@@ -98,4 +98,56 @@ class Aggregator(timeout: FiniteDuration, pipe: ActorRef) extends Actor {
 具体的にはルーティングスリップと呼ばれる処理の設計図を発行して、その設計図を元に処理を行う。  
 動的に順番や適用する処理が変更されるので、パイプ & フィルターパターンと同様に各インターフェースが同じであることと、それぞれのタスクが独立していることが必要となる。
 
+実装では次に実行するアクターのリストをメッセージに含める必要があり、それを一つづつ消費していく。
 
+```scala
+class PaintCar(color: String) extends Actor with RouteSlip {
+  override def receive: Receive = {
+    case RouteSlipMessage(routeSlip, car: Car) =>
+      sendMessageToNextTask(routeSlip, car.copy(color = color))
+  }
+
+  // ここの処理はtraitにまとめておくと楽
+  def sendMessageToNextTask(routeSlip: Seq[ActorRef], message: AnyRef): Unit = {
+    val nextTask = routeSlip.head
+    val newSlip = routeSlip.tail
+    
+    // 次のタスクにメッセージを渡す
+    if (newSlip.isEmpty) {
+      // 空の場合は、メッセージのみを処理完了済みの受け取りアクターに渡す
+      nextTask ! message
+    } else {
+      // からでない場合は、メッセージとアクターリストを両方渡す
+      nextTask ! RouteSlipMessage(routeSlip = newSlip, message = message)
+    }
+  }
+}
+```
+
+また最初のアクターはオーダーを受け取り、ルーティングストリップを作成する。
+
+```scala
+  override def receive: Receive = {
+    case order: Order =>
+      val routeSlip = createRouteSlip(order.option)
+      sendMessageToNextTask(routeSlip, new Car)
+  }
+private def createRouteSlip(options: Seq[CarOptions.Value]): Seq[ActorRef] = {
+  val routeSlip = new ListBuffer[ActorRef]
+
+  if (!options.contains(CarOptions.CAR_COLOR_GRAY)) {
+    routeSlip += paintBlack
+  }
+
+  options.foreach {
+    case CarOptions.CAR_COLOR_GRAY => routeSlip += paintGray
+    case CarOptions.NAVIGATION => routeSlip += addNavigation
+    case CarOptions.PARKING_SENSORS => routeSlip += addParkingSensors
+  }
+
+  routeSlip += endStep
+  routeSlip
+}
+```
+
+パイプ & フィルターと実装はほぼ同じだが、アクターの実行リストを持ち回すことによって動的な処理の変更を行う。
