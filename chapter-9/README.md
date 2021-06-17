@@ -35,5 +35,30 @@ Akkaの組み込みルーターはパフォーマンスやスケーリングの�
 ルーティーの生成や監視・管理はシステムの別箇所で実装を行う必要がある。  
 プールルーターでは設定できない詳細な制御や特別なライフサイクルを持つルーティーを管理する必要がある場合はグループルーターを使う。
 
+## 内容ベースのルーティング
+内容ベースのルーティングを行う場合は単にアクターを用いてメセージの内容によって転送先を決定する。
 
+## 状態ベースのルーティング
+ルーターの内部状態に応じてルーティング先を決定するルーター。  
+通常のアクターを使用して `context.become()` を使ってルーティング戦略を切り替えるとシンプルに実装できる。
 
+```scala
+class SwitchRouter(onActor: ActorRef, offActor: ActorRef) extends Actor {
+  def on: Recieve = {
+    case msg: Msg => onActor ! msg
+    // offに切り替え  
+    case _: OffMsg => context.become(off)
+  }
+  
+  def off: Recieve = {
+    case msg: Msg => offActor ! msg
+    // onに切り替え
+    case _: OnMsg => context.become(on)
+  }
+  
+  // デフォルトはoff
+  override def receive = off 
+}
+```
+
+ただし上の例だとアクターの起動時は必ず `off` になるので、再起動時などは注意すること。 63
