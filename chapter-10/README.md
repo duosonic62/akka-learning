@@ -13,3 +13,21 @@ class EchoActor(sendActor: ActorRef) extends Actor {
 }
 ```
 
+## Publish Subscribe Channel
+`送信者が受信者を知らずにメッセージを送信するチャネル` のことを Publish Subscribe Channelという。  
+メッセージを必要とする受信アクターを管理する責務はチャネルが持つ。また、複数の受信者に一斉に配信することもできる。
+
+### チャネルのサブスクライブ
+特定のメッセージを受け取るには受信者がチャネルをサブスクライブする必要がある。  
+サブスクライブは下記のように登録します。receiverは `受信するActorRef` を classOf[Msg] にはサブスクライブするメッセージの型を指定する。
+
+```scala
+sysytem.eventStream.subscribe(receiver, classOf[Msg])
+```
+
+### チャネルのパブリッシュ
+このチャネルでは特に受信者を特定できないため、直接アクターを指定するのではなくeventStreamを通してメッセージを送信する。
+
+```scala
+system.eventStream.publish(msg)
+```
