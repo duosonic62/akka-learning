@@ -31,3 +31,15 @@ sysytem.eventStream.subscribe(receiver, classOf[Msg])
 ```scala
 system.eventStream.publish(msg)
 ```
+
+### カスタムイベントバス
+EventBusトレイトを実装することで、パブリックサブスクライブチャネルを実装することができる。
+
+* Event  
+  パブリッシュするイベントの型。EventStreamではAnyRefになっているが、もっと限定することも可能。
+* Subscriber  
+  イベントに登録サブスクライバーの型。EventStreamではActorRef。
+* Classifier  
+  イベントを送信するときのサブスクライバを選択に使用する分類子。EventStreamではメッセージのクラス型。
+  
+また、これらを全て実装しなくても `LookupClassification, SubchannellClassification, ScanningClassification` などのもっと用途に近い抽象クラスがあるため、それらをミックスインすると実装が楽になる。
