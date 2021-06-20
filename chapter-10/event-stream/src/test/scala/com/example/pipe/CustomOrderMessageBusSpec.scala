@@ -29,8 +29,8 @@ class CustomOrderMessageBusSpec extends TestKit(ActorSystem("testsystem"))
       multi.expectNoMessage(3 seconds)
 
       val msg2 = SubmitOrder(2, "multi")
-      bus.publish(msg)
-      multi.expectMsg(msg)
+      bus.publish(msg2)
+      multi.expectMsg(msg2)
       single.expectNoMessage(3 seconds)
     }
   }
