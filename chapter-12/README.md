@@ -46,4 +46,12 @@ val runnableGraph: RunnableGraph[Future[IOResult]] = source.to(sink)
   }
 ```
 
+## akka-stream(Flow)
+上記の例では入力と出力のノードのみだったが、 `Flowは入力と出力を一つづつ持つ` ため3以上のノードを定義できるようになる。  
+例えば上記の例に加えフィルターやパース、シリアライズを行うノードを追加して高機能なstreamを生成することができる。
+
+```scala
+TODO
+```
+
 
