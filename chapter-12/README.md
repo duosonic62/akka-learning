@@ -21,7 +21,10 @@ akka-streamを使用するには下記の手順が必要となる。
 ちなみにグラフ単体では実行可能ではなく、暗黙的に宣言されている `マテリアライザー` がアクターを生成して、実行可能な状態になる。
 
 ```scala
-// TODO 
+val source: Source[ByteString, Future[IOResult]] = FileIO.fromPath(inputPath)
+val sink: Sink[ByteString, Future[IOResult]] = FileIO.toPath(outputFile, Set(CREATE, WRITE, APPEND))
+
+val runnableGraph: RunnableGraph[Future[IOResult]] = source.to(sink)
 ```
 
 生成したグラフはそのままでは特に何も動作しないため、実行する必要がある。
@@ -30,5 +33,17 @@ akka-streamを使用するには下記の手順が必要となる。
 生成したグラフは `run()` メソッドで実行することができる。実行結果として `補助値(マテリアライズされた値)` を受け取る。  
 補助値はグラフを生成するときにどのエンドポイントの補助値を受け取る(受け取らない)を設定することができる。
 
+```scala
+  // ActorMateliarizerで実行するときはActorSystemが必要
+  implicit val system: ActorSystem = ActorSystem()
+  implicit val ec: ExecutionContextExecutor = system.dispatcher
+  // materilalizerは systemから暗黙的に作成されるようになったので下記は不要
+  // implicit val matelialier = ActorMatelializer()
+
+  runnableGraph.run().foreach { result =>
+    println(s"${result.status}, ${result.count} bytes read.")
+    system.terminate()
+  }
+```
 
 
