@@ -2,6 +2,7 @@ package com.example.stream
 
 import akka.NotUsed
 import akka.actor.ActorSystem
+import akka.actor.FSM.Failure
 import akka.actor.TypedActor.Supervisor
 import akka.stream.{ActorAttributes, IOResult, Supervision}
 import akka.util.ByteString
@@ -11,6 +12,8 @@ import java.nio.file.StandardOpenOption._
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import akka.stream.scaladsl._
 import com.example.stream.LogStreamProcessor.LogParseException
+
+import scala.util.Success
 
 
 object StreamingFilter extends App with EventMarshalling {

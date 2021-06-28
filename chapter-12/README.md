@@ -54,4 +54,27 @@ val runnableGraph: RunnableGraph[Future[IOResult]] = source.to(sink)
 TODO
 ```
 
+### エラーハンドリング
+エラーハンドリングはアクターと同様にスーパーバイザー戦略を適用することができる。  
+```scala
+  val decider: Supervision.Decider = {
+    case _: LogParseException => Supervision.Resume
+    case _ => Supervision.Stop
+  }
+  val parse: Flow[String, Event, NotUsed] = Flow[String].map(LogStreamProcessor.parseLineEx)
+    .collect { case Some(e) => e }
+    .withAttributes(ActorAttributes.supervisionStrategy(decider))
+```
 
+またエラーをストリーム要素とし手流してしまうのもの手段の一つとして取れる。
+```scala
+val parse: Flow[String, Event, NotUsed] = Flow[String]
+    .map{ evt =>
+      val parsedEvt = try {
+        LogStreamProcessor.parseLineEx(evt)
+      } catch  {
+        case e: LogParseException => Failure(e) 
+      }
+      Success(parsedEvt)
+    }
+```
