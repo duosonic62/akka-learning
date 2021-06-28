@@ -2,13 +2,15 @@ package com.example.stream
 
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.stream.IOResult
+import akka.actor.TypedActor.Supervisor
+import akka.stream.{ActorAttributes, IOResult, Supervision}
 import akka.util.ByteString
 
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption._
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import akka.stream.scaladsl._
+import com.example.stream.LogStreamProcessor.LogParseException
 
 
 object StreamingFilter extends App with EventMarshalling {
@@ -23,16 +25,21 @@ object StreamingFilter extends App with EventMarshalling {
 
   val maxLine = 512
 
-  val frame: Flow[ByteString, String, NotUsed] = Framing.delimiter(ByteString("/n"), maxLine)
-    .map {_.decodeString("UTF8")}
+  val frame: Flow[ByteString, String, NotUsed] = Framing.delimiter(ByteString("\n"), maxLine)
+    .map { str => str.decodeString("UTF8") }
 
+  val decider: Supervision.Decider = {
+    case _: LogParseException => Supervision.Resume
+    case _ => Supervision.Stop
+  }
   val parse: Flow[String, Event, NotUsed] = Flow[String].map(LogStreamProcessor.parseLineEx)
     .collect { case Some(e) => e }
+    .withAttributes(ActorAttributes.supervisionStrategy(decider))
 
   val filter: Flow[Event, Event, NotUsed] = Flow[Event].filter(_.state == Ok)
 
   val serialize: Flow[Event, ByteString, NotUsed] = Flow[Event].map { event =>
-    ByteString(event.toString)
+    ByteString(event.toString + "\n")
   }
 
   val composedFlow: Flow[ByteString, ByteString, NotUsed] =
