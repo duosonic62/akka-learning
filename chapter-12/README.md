@@ -69,12 +69,22 @@ TODO
 またエラーをストリーム要素とし手流してしまうのもの手段の一つとして取れる。
 ```scala
 val parse: Flow[String, Event, NotUsed] = Flow[String]
-    .map{ evt =>
+    .map { evt =>
       val parsedEvt = try {
         LogStreamProcessor.parseLineEx(evt)
-      } catch  {
-        case e: LogParseException => Failure(e) 
+      } catch {
+        case e: LogParseException => Failure(e)
       }
       Success(parsedEvt)
     }
+```
+
+## akka-stream(BidiFlow)
+BidiFlowは2入力、2出力を持つコンポーネント。シリアライザ・デシリアライザをひとまとめにしてプロトコルアダプターなどとして活用する際に便利になる。  
+基本的には2つのFlowをひとまとめにしたようなものなので、BidiFlowをFlowとつなげた場合は下記のように処理される。  
+input -> BidiFlow(in: 1) -> BidiFlow(out: 1) -> Flow(in) -> Flow(out) -> BidiFlow(in:2) -> BidiFlow(out: 2) -> output
+
+```scala
+val bidiFlow = BidiFlow.fromFlows(inFlow, outFlow)
+val composedFlow = bidiFlow.join(filter)
 ```
