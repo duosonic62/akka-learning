@@ -2,7 +2,7 @@ package com.example.stream
 
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Broadcast, FileIO, Flow, Framing, GraphDSL, Keep}
+import akka.stream.scaladsl.{Broadcast, FileIO, Flow, Framing, GraphDSL, Keep, Sink}
 import akka.stream.{FlowShape, Graph}
 import akka.util.ByteString
 import com.example.stream.StreamingFilter.{inputPath, maxLine, outputFile, system}

@@ -88,3 +88,29 @@ input -> BidiFlow(in: 1) -> BidiFlow(out: 1) -> Flow(in) -> Flow(out) -> BidiFlo
 val bidiFlow = BidiFlow.fromFlows(inFlow, outFlow)
 val composedFlow = bidiFlow.join(filter)
 ```
+
+## Graph DSL
+akka-streamでは任意の数の入出力を持つファンイン・ファンアウトのシナリオを記述できるグラフDSLを提供している。  
+akka.stream.Shapeを継承したクラスでGraphを作れれば、柔軟な形を持ったstreamのコンポーネントを自作できる。
+
+例えば、1in/1outのグラフであれば、FlowShape(extends Shape)を使えるので下記のように書ける。  
+```scala
+ Flow.fromGraph(
+      GraphDSL.create() { implicit builder => 
+      ・・・
+　}
+```
+
+またこれ自体がグラフなのでShapeで定義してある入出力数を守れば、内部的には自由なグラフを作れる。
+```scala
+broadcast ~> parserWrapped.in
+broadcast ~> ok ~> decode ~> logFileSink(Ok)
+broadcast ~> warning ~> decode ~> logFileSink(Warning)
+broadcast ~> error ~>  decode ~> logFileSink(Error)
+broadcast ~> critical ~> decode ~> logFileSink(Critical)
+
+FlowShape(broadcast.in, parserWrapped.out)
+```
+
+broadcastはbuilderに登録しているinの部分、parserWrappedはbuilderに追加しているoutの部分である。  
+最後にFlowShapeを作るときに、 builderに登録してあるin/out を使う必要があるので注意。  
