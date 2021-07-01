@@ -15,9 +15,7 @@ object BroadcastStreamingFilter  extends App with EventMarshalling {
   implicit val system: ActorSystem = ActorSystem()
   implicit val ec: ExecutionContextExecutor = system.dispatcher
 
-  type FlowLike = Graph[FlowShape[Event, ByteString], NotUsed]
-
-  logFileSource.via(json).via(processStates).toMat(logFileSink())(Keep.right)
+  logFileSource.via(jsonParser).via(processStates).toMat(logFileSink())(Keep.right)
     .run().foreach { result =>
     println(s"${result.status}, ${result.count} bytes read.")
     system.terminate()
@@ -27,23 +25,21 @@ object BroadcastStreamingFilter  extends App with EventMarshalling {
     Flow.fromGraph(
       GraphDSL.create() { implicit builder =>
         import GraphDSL.Implicits._
-        val bcast = builder.add(Broadcast[Event](5))
-        val out = builder.add(Flow[Event].map { event =>
-          ByteString(event.toString + "\n")
-        })
+        val broadcast = builder.add(Broadcast[Event](5))
+        val parserWrapped = builder.add(decode)
 
         val ok = Flow[Event].filter(_.state == Ok)
         val warning = Flow[Event].filter(_.state == Warning)
         val error = Flow[Event].filter(_.state == Error)
         val critical = Flow[Event].filter(_.state == Critical)
 
-        bcast ~> out.in
-        bcast ~> ok ~> out ~> logFileSink(Ok)
-        bcast ~> warning ~> out ~> logFileSink(Warning)
-        bcast ~> error ~>  out ~> logFileSink(Error)
-        bcast ~> critical ~> out ~> logFileSink(Critical)
+        broadcast ~> parserWrapped.in
+        broadcast ~> ok ~> decode ~> logFileSink(Ok)
+        broadcast ~> warning ~> decode ~> logFileSink(Warning)
+        broadcast ~> error ~>  decode ~> logFileSink(Error)
+        broadcast ~> critical ~> decode ~> logFileSink(Critical)
 
-        FlowShape(bcast.in, out.out)
+        FlowShape(broadcast.in, parserWrapped.out)
       }
     )
   }
@@ -53,10 +49,14 @@ object BroadcastStreamingFilter  extends App with EventMarshalling {
     FileIO.fromPath(inputPath)
   }
 
-  def json: Flow[ByteString, Event, NotUsed] = Framing.delimiter(ByteString("\n"), maxLine)
-    .map { str => str.decodeString("UTF8") }
+  def jsonParser: Flow[ByteString, Event, NotUsed] = Framing.delimiter(ByteString("\n"), 512)
+    .map { str =>str.decodeString("UTF8")}
     .map(LogStreamProcessor.parseLineEx)
     .collect { case Some(e) => e }
+
+  def decode = Flow[Event].map { event =>
+    ByteString(event.toString + "\n")
+  }
 
   def logFileSink(state: State) = {
     val outputFile = Paths.get(s"sample_$state.log")
@@ -67,4 +67,5 @@ object BroadcastStreamingFilter  extends App with EventMarshalling {
     val outputFile = Paths.get(s"sample_copied.log")
     FileIO.toPath(outputFile, Set(CREATE, WRITE, APPEND))
   }
+
 }
