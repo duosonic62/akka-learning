@@ -1,7 +1,8 @@
 package com.example.persistent
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
+import com.typesafe.config.Config
 import org.apache.commons.io.FileUtils
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -16,7 +17,27 @@ abstract class PersistenceSpec(system: ActorSystem) extends TestKit(system)
   with AnyWordSpecLike
   with Matchers
   with BeforeAndAfterAll
-  with PersistenceCleanup
+  with PersistenceCleanup {
+
+  def this(name: String, config: Config) = this(ActorSystem(name, config))
+
+  override protected def beforeAll(): Unit = deleteStorageLocations()
+
+  override protected def afterAll(): Unit = {
+    deleteStorageLocations()
+    TestKit.shutdownActorSystem(system)
+  }
+
+  def killActors(actors: ActorRef*): Unit = {
+    actors.foreach { actor =>
+      watch(actor)
+      system.stop(actor)
+      expectTerminated(actor)
+      Thread.sleep(1000)
+    }
+  }
+}
+
 
 trait PersistenceCleanup {
   def system: ActorSystem
@@ -29,6 +50,7 @@ trait PersistenceCleanup {
   }
 
   def deleteStorageLocations(): Unit = {
+    println(storageLocations)
     storageLocations.foreach(dir => Try(FileUtils.deleteDirectory(dir)))
   }
 }

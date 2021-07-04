@@ -12,7 +12,7 @@ class Calculator extends PersistentActor with ActorLogging {
   }
 
   override val receiveCommand: Receive = {
-    case Add(value) => persist(Added(value))(updateState)
+    case Add(value) => persist(Added(value))({event => state = state.add(event.value)})
     case Subtract(value) => persist(Subtracted(value))(updateState)
     case Divide(value) => if (value != 0) persist(Divided(value))(updateState)
     case Multiply(value) => persist(Multiplied(value))(updateState)
